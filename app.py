@@ -2,7 +2,6 @@ import streamlit as st
 import fitz  # PyMuPDF
 import json
 import pandas as pd
-from datetime import datetime
 from groq import Groq
 import io
 
@@ -13,22 +12,13 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS to enforce wrapping in data_editor
 st.markdown("""
     <style>
-    div[data-testid="stDataFrame"] div[data-testid="stDataTableBodyCell"] > div {
-        white-space: pre-wrap !important;
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
-        display: block !important;
-        height: auto !important;
-        line-height: 1.5 !important;
-        padding: 10px !important;
+    .main-title {
+        color: #1E88E5;
+        font-size: 32px;
+        font-weight: bold;
     }
-    div[data-testid="stDataFrame"] div[data-testid="stVerticalBlock"] {
-        height: auto !important;
-    }
-    .main-title { color: #1E88E5; font-size: 32px; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -39,11 +29,12 @@ with col_logo:
         st.image("logo.png", width=150)
     except:
         st.markdown("### 🏢")
+
 with col_title:
     st.markdown('<p class="main-title">Batch Legal Contract Auditor</p>', unsafe_allow_html=True)
     st.write("**Jodhani Papers Pvt. Ltd.**")
 
-# --- 3. API INITIALIZATION ---
+# --- 3. API INIT ---
 try:
     api_key = st.secrets["GROQ_API_KEY"]
 except:
@@ -68,10 +59,10 @@ def analyze_single_pdf(pdf_file, instructions, model):
     prompt = f"""
     Analyze for Jodhani Papers Pvt. Ltd.
     Instructions: {instructions}
-    Return JSON with fields:
+    Return JSON with:
     - summary (3-4 sentences)
-    - checklist (detailed on Governing Law, Payment, Termination)
-    - top_risks (descriptive)
+    - checklist (details: Governing Law, Payment, Termination)
+    - top_risks (text)
     - risk_score (1-10)
     - status (Safe/Warning/Critical)
     TEXT: {text[:15000]}
@@ -85,50 +76,64 @@ def analyze_single_pdf(pdf_file, instructions, model):
         ],
         response_format={"type": "json_object"}
     )
+
     return json.loads(response.choices[0].message.content)
 
-# --- 6. PROCESS AND DISPLAY ---
+# --- 6. PROCESS ---
 if run_audit and uploaded_files:
-    all_results = []
-    progress_bar = st.progress(0)
+    results = []
+    bar = st.progress(0)
 
     for i, file in enumerate(uploaded_files):
         with st.status(f"Auditing {file.name}...", expanded=False):
             try:
-                result = analyze_single_pdf(file, user_instructions, selected_model)
-                result['Filename'] = file.name
-                all_results.append(result)
+                r = analyze_single_pdf(file, user_instructions, selected_model)
+                r['Filename'] = file.name
+                results.append(r)
             except Exception as e:
                 st.error(f"Error in {file.name}: {e}")
-        progress_bar.progress((i + 1) / len(uploaded_files))
 
-    if all_results:
-        df = pd.DataFrame(all_results)
+        bar.progress((i + 1) / len(uploaded_files))
 
-        st.subheader("📊 Full Audit Report (Wrapped View)")
-        st.data_editor(
-            df,
-            hide_index=True,
-            height=1000,
-            use_container_width=True,
-            column_config={
-                "Filename": st.column_config.TextColumn(width="medium"),
-                "status": st.column_config.TextColumn(width="small"),
-                "risk_score": st.column_config.NumberColumn("Score", format="%d ⭐"),
-                "summary": st.column_config.TextColumn(width="large"),
-                "checklist": st.column_config.TextColumn(width="large"),
-                "top_risks": st.column_config.TextColumn(width="large"),
+    if results:
+        df = pd.DataFrame(results)
+        df = df[["Filename", "status", "risk_score", "summary", "checklist", "top_risks"]]
+
+        st.subheader("📊 Full Audit Report (Readable Mode)")
+
+        # HTML TABLE RENDER (FULL WRAP + AUTO HEIGHT)
+        html = df.to_html(index=False, escape=False)
+
+        st.markdown("""
+            <style>
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+                font-size: 14px;
             }
-        )
+            th, td {
+                border: 1px solid #888;
+                padding: 10px;
+                white-space: normal !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                text-align: left;
+                vertical-align: top;
+            }
+            </style>
+        """, unsafe_allow_html=True)
 
-        # Excel Export
+        st.markdown(html, unsafe_allow_html=True)
+
+        # Excel export
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False)
 
         st.download_button(
-            "📥 Download Excel Report",
-            output.getvalue(),
-            "Jodhani_Audit_Report.xlsx",
+            label="📥 Download Excel Report",
+            data=output.getvalue(),
+            file_name="Jodhani_Audit_Report.xlsx",
             use_container_width=True
         )
