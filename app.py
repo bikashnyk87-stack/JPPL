@@ -13,16 +13,24 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS for Full Visibility and Text Wrapping
+# Custom CSS to FORCE full text display and automatic row height
 st.markdown("""
     <style>
-    /* Force rows to expand and wrap text */
-    [data-testid="stDataTableBodyCell"] div {
-        white-space: normal !important;
+    /* This forces the cells to wrap text and grow in height */
+    div[data-testid="stDataTableBodyCell"] > div {
+        white-space: pre-wrap !important;
         word-wrap: break-word !important;
-        line-height: 6.5 !important;
+        display: block !important;
+        line-height: 1.5 !important;
+        height: auto !important;
+        padding: 10px !important;
     }
-    /* Title Styling */
+    
+    /* Ensures the dataframe container allows for larger rows */
+    .stDataFrame [data-testid="stTable"] {
+        height: auto !important;
+    }
+
     .main-title { color: #1E88E5; font-size: 32px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
@@ -30,7 +38,7 @@ st.markdown("""
 # --- 2. HEADING ---
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
-    try: st.image("logo.png", width=400)
+    try: st.image("logo.png", width=450) # Adjusted width for better proportion
     except: st.markdown("### 🏢")
 with col_title:
     st.markdown('<p class="main-title">Batch Legal Contract Auditor</p>', unsafe_allow_html=True)
@@ -92,19 +100,18 @@ if run_audit and uploaded_files:
 
     if all_results:
         df = pd.DataFrame(all_results)
-        
         st.subheader("📊 Full Audit Report")
 
-        # --- INCREASED HEIGHT & TEXT WRAPPING ---
+        # Use st.dataframe with a tall height to show all content
         st.dataframe(
             df,
-            height=600, # This makes the table taller on your screen
+            height=1000, # Increased height to ensure more visible space
             column_config={
                 "Filename": st.column_config.TextColumn("File Name", width="medium"),
                 "status": st.column_config.TextColumn("Status", width="small"),
                 "risk_score": st.column_config.NumberColumn("Score", format="%d ⭐"),
-                "summary": st.column_config.TextColumn("Summary (Auto-Wraps)", width="large"),
-                "checklist": st.column_config.TextColumn("Clause Checklist (Auto-Wraps)", width="large"),
+                "summary": st.column_config.TextColumn("Summary", width="large"),
+                "checklist": st.column_config.TextColumn("Clause Checklist", width="large"),
                 "top_risks": st.column_config.TextColumn("Primary Risk", width="medium"),
             },
             hide_index=True,
@@ -116,5 +123,3 @@ if run_audit and uploaded_files:
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False)
         st.download_button("📥 Download Excel Report", output.getvalue(), "Jodhani_Audit_Report.xlsx", use_container_width=True)
-
-
