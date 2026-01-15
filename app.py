@@ -47,7 +47,7 @@ client = Groq(api_key=api_key)
 with st.sidebar:
     st.header("📂 Document Center")
     uploaded_files = st.file_uploader("Upload PDFs", type="pdf", accept_multiple_files=True)
-    user_instructions = st.text_area("Audit Focus:", value="Check for hidden penalties and jurisdiction.", height=100)
+    user_instructions = st.text_area("Audit Focus:", value="Check for hidden penalties and jurisdiction.", height=200)
     selected_model = st.selectbox("AI Engine:", ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"])
     run_audit = st.button("🚀 Start Batch Audit", type="primary", use_container_width=True)
 
@@ -60,7 +60,7 @@ def analyze_single_pdf(pdf_file, instructions, model):
     prompt = f"""
     Analyze for Jodhani Papers Pvt. Ltd. Instructions: {instructions}
     Return JSON: 
-    'summary' (Detailed 3-4 sentences), 
+    'summary' (Detailed 5-6 sentences), 
     'checklist' (Detailed findings for Governing Law, Payment, Termination), 
     'top_risks' (Main risk description), 
     'risk_score' (1-10), 
@@ -98,14 +98,14 @@ if run_audit and uploaded_files:
         # --- INCREASED HEIGHT & TEXT WRAPPING ---
         st.dataframe(
             df,
-            height=800, # This makes the table taller on your screen
+            height=600, # This makes the table taller on your screen
             column_config={
-                "Filename": st.column_config.TextColumn("File Name", width="medium"),
-                "status": st.column_config.TextColumn("Status", width="small"),
+                "Filename": st.column_config.TextColumn("File Name", width="medium", height="medium"),
+                "status": st.column_config.TextColumn("Status", width="small",height="medium"),
                 "risk_score": st.column_config.NumberColumn("Score", format="%d ⭐"),
-                "summary": st.column_config.TextColumn("Summary (Auto-Wraps)", width="large"),
-                "checklist": st.column_config.TextColumn("Clause Checklist (Auto-Wraps)", width="large"),
-                "top_risks": st.column_config.TextColumn("Primary Risk", width="medium"),
+                "summary": st.column_config.TextColumn("Summary (Auto-Wraps)", width="large",height="medium"),
+                "checklist": st.column_config.TextColumn("Clause Checklist (Auto-Wraps)", width="large",height="medium"),
+                "top_risks": st.column_config.TextColumn("Primary Risk", width="medium",height="medium"),
             },
             hide_index=True,
             use_container_width=True
@@ -116,3 +116,4 @@ if run_audit and uploaded_files:
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False)
         st.download_button("📥 Download Excel Report", output.getvalue(), "Jodhani_Audit_Report.xlsx", use_container_width=True)
+
