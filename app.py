@@ -6,20 +6,21 @@ from datetime import datetime
 from groq import Groq
 import io
 
-# --- 1. PAGE CONFIG & MOBILE RESPONSIVE CSS ---
+# --- 1. PAGE CONFIG ---
 st.set_page_config(
     page_title="Jodhani Papers | Legal Auditor", 
     page_icon="⚖️", 
     layout="wide"
 )
 
+# Custom CSS for Full Visibility and Text Wrapping
 st.markdown("""
     <style>
-    /* Force wrapping in all table cells */
-    [data-testid="stExpanderDetails"] div, 
-    .stDataFrame div[data-testid="stTable"] div {
+    /* Force rows to expand and wrap text */
+    [data-testid="stDataTableBodyCell"] div {
         white-space: normal !important;
         word-wrap: break-word !important;
+        line-height: 1.5 !important;
     }
     /* Title Styling */
     .main-title { color: #1E88E5; font-size: 32px; font-weight: bold; }
@@ -59,9 +60,9 @@ def analyze_single_pdf(pdf_file, instructions, model):
     prompt = f"""
     Analyze for Jodhani Papers Pvt. Ltd. Instructions: {instructions}
     Return JSON: 
-    'summary' (2 sentences), 
-    'checklist' (Bullet points for Governing Law, Payment, Termination), 
-    'top_risks' (Main risk), 
+    'summary' (Detailed 3-4 sentences), 
+    'checklist' (Detailed findings for Governing Law, Payment, Termination), 
+    'top_risks' (Main risk description), 
     'risk_score' (1-10), 
     'status' (Safe/Warning/Critical).
     TEXT: {text[:15000]}
@@ -92,22 +93,18 @@ if run_audit and uploaded_files:
     if all_results:
         df = pd.DataFrame(all_results)
         
-        # --- NEW: SEARCH & FILTER ---
-        search_query = st.text_input("🔍 Search within results (e.g., 'Warning' or 'Delhi')")
-        if search_query:
-            df = df[df.astype(str).apply(lambda x: x.str.contains(search_query, case=False)).any(axis=1)]
+        st.subheader("📊 Full Audit Report")
 
-        st.subheader("📊 Audit Report")
-
-        # --- TEXT WRAPPING FIX HERE ---
+        # --- INCREASED HEIGHT & TEXT WRAPPING ---
         st.dataframe(
             df,
+            height=800, # This makes the table taller on your screen
             column_config={
-                "Filename": st.column_config.TextColumn("File", width="medium"),
+                "Filename": st.column_config.TextColumn("File Name", width="medium"),
                 "status": st.column_config.TextColumn("Status", width="small"),
                 "risk_score": st.column_config.NumberColumn("Score", format="%d ⭐"),
-                "summary": st.column_config.TextColumn("Summary", width="large"),
-                "checklist": st.column_config.TextColumn("Checklist", width="large"),
+                "summary": st.column_config.TextColumn("Summary (Auto-Wraps)", width="large"),
+                "checklist": st.column_config.TextColumn("Clause Checklist (Auto-Wraps)", width="large"),
                 "top_risks": st.column_config.TextColumn("Primary Risk", width="medium"),
             },
             hide_index=True,
@@ -118,4 +115,4 @@ if run_audit and uploaded_files:
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False)
-        st.download_button("📥 Download Excel Report", output.getvalue(), "Audit_Report.xlsx", use_container_width=True)
+        st.download_button("📥 Download Excel Report", output.getvalue(), "Jodhani_Audit_Report.xlsx", use_container_width=True)
