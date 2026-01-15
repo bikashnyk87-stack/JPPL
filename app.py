@@ -21,9 +21,9 @@ st.markdown("""
         white-space: pre-wrap !important;
         word-wrap: break-word !important;
         display: block !important;
-        line-height: 1.5 !important;
+        line-height: 3 !important;
         height: auto !important;
-        padding: 10px !important;
+        padding: 20px !important;
     }
     
     /* Ensures the dataframe container allows for larger rows */
@@ -105,7 +105,7 @@ if run_audit and uploaded_files:
         # Use st.dataframe with a tall height to show all content
         st.dataframe(
             df,
-            height=1000, # Increased height to ensure more visible space
+            height=400, # Increased height to ensure more visible space
             column_config={
                 "Filename": st.column_config.TextColumn("File Name", width="medium"),
                 "status": st.column_config.TextColumn("Status", width="small"),
@@ -123,3 +123,4 @@ if run_audit and uploaded_files:
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False)
         st.download_button("📥 Download Excel Report", output.getvalue(), "Jodhani_Audit_Report.xlsx", use_container_width=True)
+
